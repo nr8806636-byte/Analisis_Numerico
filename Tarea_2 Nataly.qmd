@@ -1,0 +1,264 @@
+---
+title: "Tarea 2. Punto fijo y series de Taylor"
+author: "Nataly Pamela Ramírez Cano"
+lang: es
+format: 
+  html:
+    grid:
+      body-width: 1200px
+---
+
+```{python}
+#| code-fold: true
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import optimize
+from math import factorial
+import pandas as pd
+# ==========================================
+# CÓDIGO DEL EJERCICIO 1
+# ==========================================
+def g1(x): return (3 + x - 2*x**2)**0.25
+def g2(x): return np.sqrt((3 + x - x**4) / 2)
+def g3(x): return np.sqrt((x + 3) / (x**2 + 2))
+def g4(x): return (3*x**4 + 2*x**2 + 3) / (4*x**3 + 4*x - 1)
+
+x = np.linspace(-2, 2, 400)
+fig, axs = plt.subplots(2, 2, figsize=(10, 8))
+funciones = [g1, g2, g3, g4]
+titulos = ['g1(x)', 'g2(x)', 'g3(x)', 'g4(x)']
+
+for i, ax in enumerate(axs.flat):
+    with np.errstate(invalid='ignore'):
+        y = funciones[i](x)
+    ax.plot(x, y, label=f'g_{i+1}(x)', color='blue')
+    ax.plot(x, x, 'r--', label='y=x')
+    ax.set_title(titulos[i])
+    ax.grid(True)
+    ax.legend()
+
+plt.tight_layout()
+plt.show()
+# ==========================================
+# CÓDIGO EJERCICIO 2
+# ==========================================
+# Despejes propuestos para g(x)
+def g1_ex2(x): return (3*x**2 + 3)**0.25  # Despejando la x de x^4
+def g2_ex2(x): return -((3*x**2 + 3)**0.25) # Raíz negativa
+
+x = np.linspace(-2.5, 2.5, 400)
+
+plt.figure(figsize=(8, 5))
+plt.plot(x, g1_ex2(x), label='g1(x) = +(3x^2 + 3)^(1/4)', color='blue')
+plt.plot(x, g2_ex2(x), label='g2(x) = -(3x^2 + 3)^(1/4)', color='green')
+plt.plot(x, x, 'r--', label='y=x')
+plt.title('Puntos fijos para f(x) = x^4 - 3x^2 - 3')
+plt.grid(True)
+plt.legend()
+plt.show()
+# ==========================================
+# CÓDIGO EJERCICIO 3
+# ==========================================
+# Si x^2 + 10cos(x) = 0 => cos(x) = -x^2/10 => x = arccos(-x^2/10)
+def g1_ex3(x): return np.arccos(-x**2 / 10)
+def g2_ex3(x): return -np.arccos(-x**2 / 10) # Por la simetría del coseno
+
+x = np.linspace(-3.1, 3.1, 400)
+
+plt.figure(figsize=(8, 5))
+# Solo evaluamos donde -x^2/10 está entre -1 y 1
+mask = np.abs(-x**2 / 10) <= 1
+plt.plot(x[mask], g1_ex3(x[mask]), label='g1(x) = arccos(-x^2/10)', color='blue')
+plt.plot(x[mask], g2_ex3(x[mask]), label='g2(x) = -arccos(-x^2/10)', color='green')
+plt.plot(x, x, 'r--', label='y=x')
+plt.title('Puntos fijos para f(x) = x^2 + 10cos(x)')
+plt.grid(True)
+plt.legend()
+plt.show()
+# ==========================================
+# CÓDIGO EJERCICIO 4
+# ==========================================
+import numpy as np
+import pandas as pd
+
+def D(p): return 15 * np.exp(-0.4 * p)
+def S(p): return 2 * p**1.2 - 1
+def g_mercado(p): return p + 0.25 * (D(p) - S(p))
+
+p0 = 1.5 # Valor inicial propuesto (puedes ajustarlo si justificas otro en tu inciso a)
+tol = 1e-6
+p = p0
+iteraciones = []
+
+for i in range(1, 50): # Damos un máximo de 50 iteraciones por seguridad
+    p_next = g_mercado(p)
+    error = abs(p_next - p)
+    iteraciones.append({'Iteración': i, 'p_n': p_next, 'Error a posteriori': error})
+    if error < tol:
+        break
+    p = p_next
+
+df_iter = pd.DataFrame(iteraciones)
+print("Tabla de iteraciones (Ejercicio 4):")
+print(df_iter.to_string(index=False))
+print(f"\nPrecio de equilibrio p*: {p_next:.6f}")
+# ==========================================
+# CÓDIGO EJERCICIO 5
+# ==========================================
+def D_ex5(p): return 18 / (1 + p)**0.8
+def S_ex5(p): return 3 + 2 * np.log(p)
+def g_ex5(p, alpha): return p + alpha * (D_ex5(p) - S_ex5(p))
+
+def iterar_mercado(p0, alpha, tol=1e-5, max_iter=50):
+    p = p0
+    iteraciones = []
+    for i in range(1, max_iter + 1):
+        p_next = g_ex5(p, alpha)
+        error = abs(p_next - p)
+        iteraciones.append({'Iteración': i, 'p_n': p_next, 'Error a posteriori': error})
+        if error < tol:
+            break
+        p = p_next
+    return pd.DataFrame(iteraciones)
+
+# Inciso (c): alpha = 0.2
+df_alpha_02 = iterar_mercado(4, 0.2)
+print("Tabla de iteraciones (alpha = 0.2):")
+print(df_alpha_02.to_string(index=False))
+
+# Inciso (d): alpha = 0.6
+print("\nProbando convergencia con alpha = 0.6 (primeras 10 iteraciones):")
+df_alpha_06 = iterar_mercado(4, 0.6, max_iter=10)
+print(df_alpha_06.to_string(index=False))
+# ==========================================
+# CÓDIGO EJERCICIO 6
+# ==========================================
+import numpy as np
+import matplotlib.pyplot as plt
+from math import factorial
+
+# f(x) = e^x * cos(x) alrededor de x0 = 0
+# Derivadas evaluadas en 0: f(0)=1, f'(0)=1, f''(0)=0, f'''(0)=-2, f''''(0)=-4, f'''''(0)=-4
+coeficientes_ex6 = [1, 1, 0, -2, -4, -4]
+
+def taylor_P5(x):
+    suma = 0
+    for n in range(6):
+        suma += (coeficientes_ex6[n] / factorial(n)) * (x)**n
+    return suma
+
+def f_real_ex6(x):
+    return np.exp(x) * np.cos(x)
+
+x_vals = np.linspace(-1, 1, 100)
+
+plt.figure(figsize=(8, 5))
+plt.plot(x_vals, f_real_ex6(x_vals), label='f(x) = e^x cos(x)', linewidth=2)
+plt.plot(x_vals, taylor_P5(x_vals), '--', label='P_5(x)', linewidth=2)
+plt.title('Aproximación de Taylor de orden 5 (Ejercicio 6)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Cálculos para el inciso (b) y (c)
+aprox = taylor_P5(0.5)
+real = f_real_ex6(0.5)
+error_real = abs(real - aprox)
+
+print(f"Aproximación P_5(0.5): {aprox:.6f}")
+print(f"Valor real f(0.5): {real:.6f}")
+print(f"Error real absoluto: {error_real:.6f}")
+# ==========================================
+# CÓDIGO EJERCICIO 7
+# ==========================================
+# e^u = 1 + u + u^2/2 + u^3/6 + u^4/24
+# Sustituyendo u = x^2 y multiplicando por x:
+def taylor_P8_ex7(x):
+    return x + x**3 + (x**5)/2 + (x**7)/6 # El término de x^8 es 0
+
+def f_ex7(x): return x * np.exp(x**2)
+
+x_vals = np.linspace(-1, 1, 100)
+
+plt.figure(figsize=(8, 5))
+plt.plot(x_vals, f_ex7(x_vals), label='f(x) = x e^{x^2}', linewidth=2)
+plt.plot(x_vals, taylor_P8_ex7(x_vals), '--', label='P_8(x)', linewidth=2)
+plt.title('Aproximación de Taylor de orden 8 (Ejercicio 7)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Aproximación en x = 0.2
+aprox_ex7 = taylor_P8_ex7(0.2)
+real_ex7 = f_ex7(0.2)
+print(f"P_8(0.2): {aprox_ex7:.8f}")
+print(f"Valor real f(0.2): {real_ex7:.8f}")
+print(f"Error real absoluto: {abs(real_ex7 - aprox_ex7):.8e}")
+# ==========================================
+# CÓDIGO EJERCICIO 8
+# ==========================================
+# f(x) = 2(sqrt(x) - 1). Derivadas evaluadas en x0 = 1:
+# f(1)=0, f'(1)=1, f''(1)=-1/2, f'''(1)=3/4, f''''(1)=-15/8, f'''''(1)=105/16
+coefs_ex8 = [0, 1, -0.5, 0.75, -1.875, 6.5625]
+
+def f_ex8(x): return 2 * (np.sqrt(x) - 1)
+
+def taylor_Pn_ex8(x, n):
+    suma = 0
+    for i in range(n + 1):
+        suma += (coefs_ex8[i] / factorial(i)) * (x - 1)**i
+    return suma
+
+# Gráfica del error máximo
+grados = [1, 2, 3, 4, 5]
+errores_max = []
+x_interval = np.linspace(0.5, 1.5, 200)
+
+for n in grados:
+    errores = np.abs(f_ex8(x_interval) - taylor_Pn_ex8(x_interval, n))
+    errores_max.append(np.max(errores))
+
+plt.figure(figsize=(8, 5))
+plt.plot(grados, errores_max, marker='o', linestyle='-', color='red')
+plt.yscale('log')
+plt.xticks(grados)
+plt.xlabel('Grado del polinomio (n)')
+plt.ylabel('Error máximo absoluto (escala log)')
+plt.title('Error de la serie de Taylor vs Grado n')
+plt.grid(True, which="both", ls="--")
+plt.show()
+# ==========================================
+# CÓDIGO EJERCICIO 9
+# ==========================================
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+
+def f_ex9(r, m):
+    return (1 + r/m)**m - 1
+
+def taylor_tasa(r, m, n):
+    # Calcula el polinomio de Taylor usando el coeficiente binomial (m en k)
+    suma = 0
+    for k in range(1, n + 1):
+        if m >= k:
+            coef_binomial = math.comb(m, k)
+            suma += coef_binomial * (r/m)**k
+    return suma
+
+r_vals = np.linspace(0, 0.2, 100)
+emes = [1, 2, 4, 12, 365]
+n_grado = 3 # Puedes cambiar el grado aquí para probar la convergencia
+
+plt.figure(figsize=(10, 6))
+for m in emes:
+    # Graficamos las aproximaciones para cada m
+    plt.plot(r_vals, taylor_tasa(r_vals, m, n_grado), label=f'P_{n_grado}(r) con m={m}')
+
+plt.title(f'Aproximaciones de Taylor (n={n_grado}) para diferentes capitalizaciones')
+plt.xlabel('Tasa nominal (r)')
+plt.ylabel('Tasa efectiva')
+plt.legend()
+plt.grid(True)
+plt.show()
