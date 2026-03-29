@@ -1,0 +1,361 @@
+---
+title: "Tarea 4. Interpolación polinomial y con splines"
+author: "Nataly Pamela Ramírez Cano"
+lang: es
+format: 
+  html:
+    grid:
+      body-width: 1200px
+---
+
+Importamos packages y funciones necesarias:
+
+```{python}
+#| code-fold: true
+#| warning: false
+#| message: false
+
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+from scipy.interpolate import lagrange
+from numpy.polynomial.polynomial import Polynomial
+from scipy.interpolate import CubicSpline
+from scipy.stats import chi2
+import yfinance as yf
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import statsmodels.api as sm
+import warnings
+
+warnings.filterwarnings('ignore')
+
+#| code-fold: true
+#| fig-align: "center"
+
+x_nodos = np.array([0, 1, 2, 3, 4, 5])
+y_nodos = np.array([2, 1, 3, 2, 4, 1])
+x_plot = np.linspace(-0.5, 5.5, 200)
+
+def lagrange_base(x_nodos, i, x):
+    L = np.ones_like(x, dtype=float)
+    for j, xj in enumerate(x_nodos):
+        if i != j:
+            L *= (x - xj) / (x_nodos[i] - xj)
+    return L
+
+plt.figure(figsize=(10, 5))
+for i in range(len(x_nodos)):
+    L_i = lagrange_base(x_nodos, i, x_plot)
+    plt.plot(x_plot, L_i, label=f"$L_{i}(x)$")
+
+plt.axhline(0, color='black', linewidth=0.8, linestyle='--')
+plt.title("Polinomios Base de Lagrange")
+plt.xlabel("x")
+plt.ylabel("$L_i(x)$")
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()
+
+pol_lagrange_ex1 = lagrange(x_nodos, y_nodos)
+
+plt.figure(figsize=(10, 5))
+plt.plot(x_plot, pol_lagrange_ex1(x_plot), color="purple", label="Polinomio $P(x)$", linewidth=2)
+plt.scatter(x_nodos, y_nodos, color="red", zorder=5, s=80, label="Puntos $(x_i, y_i)$")
+plt.title("Polinomio Interpolante de Lagrange")
+plt.xlabel("x")
+plt.ylabel("P(x)")
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()
+
+#| code-fold: true
+#| fig-align: "center"
+
+f = lambda x: x * np.cos(x) - 3 * x
+f_prime = lambda x: np.cos(x) - x * np.sin(x) - 3
+nodos = np.array([0, 0.5, 1, 1.5])
+values = f(nodos)
+x = np.linspace(0, 1.5, 200)
+pol_lagrange = lagrange(nodos, values)
+
+plt.figure(figsize=(8, 5))
+plt.plot(x, f(x), color = "#2e86c1", label = "$f(x)$", linewidth = 3)
+plt.plot(x, pol_lagrange(x), color = "#FF5733", label = "$P(x)$")
+plt.scatter(nodos, values, color = "#353a0d", zorder = 5, s = 80, label = "Puntos")
+plt.scatter(0.8, f(0.8), color='green', zorder=5, s=100, label='f(0.8)')
+plt.scatter(0.8, pol_lagrange(0.8), color='orange', zorder=5, s=100, label='P(0.8)')
+plt.grid(alpha = 0.3)
+plt.legend()
+plt.show()
+
+# Errores
+plt.figure(figsize=(8, 5))
+plt.plot(x, f(x) - pol_lagrange(x), color='red', label='Error Real')
+plt.plot(x, np.abs(f(x) - pol_lagrange(x)), color='blue', label='Error Absoluto')
+plt.plot(x, np.abs(f(x) - pol_lagrange(x)) / np.abs(f(x)), color='green', label='Error Relativo')
+plt.grid(alpha=0.3)
+plt.legend()
+plt.show()
+
+print(f"Valor real f(0.8): {f(0.8)}")
+print(f"Aproximado P(0.8): {pol_lagrange(0.8)}")
+
+#| code-fold: true
+#| fig-align: "center"
+
+cs_natural = CubicSpline(nodos, values, bc_type='natural')
+plt.figure(figsize=(8, 5))
+plt.plot(x, f(x), color = "#2e86c1", label = "$f(x)$", linewidth = 3)
+plt.plot(x, cs_natural(x), color = "#FF5733", label = "$S(x)$")
+plt.scatter(nodos, values, color = "#353a0d", zorder = 5, s = 80)
+plt.scatter(0.8, f(0.8), color='green', zorder=5, s=100)
+plt.scatter(0.8, cs_natural(0.8), color='orange', zorder=5, s=100)
+plt.grid(alpha = 0.3)
+plt.legend()
+plt.show()
+
+# Errores
+plt.figure(figsize=(8, 5))
+plt.plot(x, f(x) - cs_natural(x), color='red', label='Error Real')
+plt.plot(x, np.abs(f(x) - cs_natural(x)), color='blue', label='Error Absoluto')
+plt.plot(x, np.abs(f(x) - cs_natural(x)) / np.abs(f(x)), color='green', label='Error Relativo')
+plt.grid(alpha=0.3)
+plt.legend()
+plt.show()
+
+#| code-fold: true
+#| fig-align: "center"
+
+cs_condicionado = CubicSpline(nodos, values, bc_type=((1, f_prime(0)), (1, f_prime(1.5))))
+plt.figure(figsize=(8, 5))
+plt.plot(x, f(x), color = "#2e86c1", label = "$f(x)$", linewidth = 3)
+plt.plot(x, cs_condicionado(x), color = "#FF5733", label = "$S(x)$")
+plt.scatter(nodos, values, color = "#353a0d", zorder = 5, s = 80)
+plt.scatter(0.8, f(0.8), color='green', zorder=5, s=100)
+plt.scatter(0.8, cs_condicionado(0.8), color='orange', zorder=5, s=100)
+plt.grid(alpha = 0.3)
+plt.legend()
+plt.show()
+
+# Errores
+plt.figure(figsize=(8, 5))
+plt.plot(x, f(x) - cs_condicionado(x), color='red', label='Error Real')
+plt.plot(x, np.abs(f(x) - cs_condicionado(x)), color='blue', label='Error Absoluto')
+plt.plot(x, np.abs(f(x) - cs_condicionado(x)) / np.abs(f(x)), color='green', label='Error Relativo')
+plt.grid(alpha=0.3)
+plt.legend()
+plt.show()
+
+#| code-fold: true
+#| fig-align: "center"
+
+f_b = lambda x: np.log(np.exp(x) + 2)
+f_b_prime = lambda x: np.exp(x) / (np.exp(x) + 2)
+
+nodos_b = np.array([-2, -1, 0, 1, 2])
+values_b = f_b(nodos_b)
+x_b = np.linspace(-2.5, 2.5, 200)
+
+P_b = lagrange(nodos_b, values_b)
+S_nat_b = CubicSpline(nodos_b, values_b, bc_type='natural')
+S_cond_b = CubicSpline(nodos_b, values_b, bc_type=((1, f_b_prime(-2)), (1, f_b_prime(2))))
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+titles = ["Lagrange", "Spline Natural", "Spline Condicionado"]
+models = [P_b, S_nat_b, S_cond_b]
+
+for ax, model, title in zip(axes, models, titles):
+    ax.plot(x_b, f_b(x_b), 'b-', label='$f(x)$', lw=2)
+    ax.plot(x_b, model(x_b), 'r--', label='Aprox')
+    ax.scatter(nodos_b, values_b, c='k', zorder=5)
+    ax.scatter(0.5, model(0.5), c='orange', s=80, zorder=6)
+    ax.set_title(title)
+    ax.grid(alpha=0.3)
+    ax.legend()
+plt.show()
+
+#| code-fold: true
+#| fig-align: "center"
+
+f_c = lambda x: np.exp(x) + np.exp(-x)
+f_c_prime = lambda x: np.exp(x) - np.exp(-x)
+
+nodos_c = np.array([0, 0.5, 1, 1.5, 2])
+values_c = f_c(nodos_c)
+x_c = np.linspace(-0.2, 2.2, 200)
+
+P_c = lagrange(nodos_c, values_c)
+S_nat_c = CubicSpline(nodos_c, values_c, bc_type='natural')
+S_cond_c = CubicSpline(nodos_c, values_c, bc_type=((1, f_c_prime(0)), (1, f_c_prime(2))))
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+titles = ["Lagrange", "Spline Natural", "Spline Condicionado"]
+models_c = [P_c, S_nat_c, S_cond_c]
+
+for ax, model, title in zip(axes, models_c, titles):
+    ax.plot(x_c, f_c(x_c), 'b-', label='$f(x)$', lw=2)
+    ax.plot(x_c, model(x_c), 'r--', label='Aprox')
+    ax.scatter(nodos_c, values_c, c='k', zorder=5)
+    ax.scatter(0.75, model(0.75), c='orange', s=80, zorder=6)
+    ax.set_title(title)
+    ax.grid(alpha=0.3)
+    ax.legend()
+plt.show()
+
+#| code-fold: true
+#| fig-align: "center"
+
+T_nodes = np.array([50, 60, 65, 75, 80])
+rho_nodes = np.array([988, 985.7, 980.5, 974.8, 971.6])
+T_plot = np.linspace(45, 85, 200)
+
+P4_agua = lagrange(T_nodes, rho_nodes)
+S_agua = CubicSpline(T_nodes, rho_nodes, bc_type='natural')
+
+plt.figure(figsize=(8, 5))
+plt.plot(T_plot, P4_agua(T_plot), label="$P_4(T)$ Lagrange", color="blue")
+plt.plot(T_plot, S_agua(T_plot), label="Spline Cúbico Natural", color="green", linestyle='--')
+plt.scatter(T_nodes, rho_nodes, color="black", zorder=5)
+plt.scatter(63, P4_agua(63), color="red", zorder=6, label="P4(63)")
+plt.scatter(63, S_agua(63), color="orange", zorder=6, label="S(63)")
+plt.title("Densidad del agua en función de la temperatura")
+plt.xlabel("Temperatura (°C)")
+plt.ylabel(r"Densidad $\rho$ ($kg/m^3$)")
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()
+
+#| code-fold: true
+
+np.random.seed(12345) 
+x_m = np.arange(11)
+y_m = np.random.choice(np.arange(-25, 26), size=len(x_m))
+
+n = len(x_m) - 1
+h = np.diff(x_m) 
+
+A = np.zeros((n+1, n+1))
+v = np.zeros(n+1)
+A[0, 0] = 1
+A[n, n] = 1
+
+for i in range(1, n):
+    A[i, i-1] = h[i-1]
+    A[i, i] = 2 * (h[i-1] + h[i])
+    A[i, i+1] = h[i]
+    v[i] = 3 * ((y_m[i+1] - y_m[i]) / h[i] - (y_m[i] - y_m[i-1]) / h[i-1])
+
+c = np.linalg.solve(A, v)
+a = y_m[:-1]
+b = np.zeros(n)
+d = np.zeros(n)
+
+for i in range(n):
+    b[i] = (y_m[i+1] - y_m[i]) / h[i] - h[i] * (2*c[i] + c[i+1]) / 3
+    d[i] = (c[i+1] - c[i]) / (3 * h[i])
+
+scipy_spline = CubicSpline(x_m, y_m, bc_type='natural')
+print("Cálculo finalizado y validado contra SciPy.")
+
+#| code-fold: true
+#| fig-align: "center"
+
+def plot_conditional_splines(func, deriv, intervalo, title):
+    x_real = np.linspace(intervalo[0], intervalo[1], 500)
+    y_real = func(x_real)
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x_real, y=y_real, mode='lines', name='f(x)', line=dict(color='black', width=3)))
+    
+    ns = [4, 5, 9, 19]
+    colors = ["#a4dd1e", "#46844b", "#cfad40", "#e03cd0"]
+    
+    for n, col in zip(ns, colors):
+        x_n = np.linspace(intervalo[0], intervalo[1], n + 1)
+        y_n = func(x_n)
+        s_cond = CubicSpline(x_n, y_n, bc_type=((1, deriv(x_n[0])), (1, deriv(x_n[-1]))))
+        fig.add_trace(go.Scatter(x=x_real, y=s_cond(x_real), mode='lines', name=f'n={n}', line=dict(color=col, width=2, dash='dot')))
+            
+    fig.update_layout(title=title, xaxis_title="x", yaxis_title="f(x)", template='plotly_white')
+    fig.show()
+
+f_a = lambda x: np.exp(-x) * np.sin(np.pi * x)
+d_a = lambda x: np.exp(-x) * (np.pi * np.cos(np.pi * x) - np.sin(np.pi * x))
+plot_conditional_splines(f_a, d_a, [0, 2], "a) f(x) = e^{-x} sen(πx)")
+
+#| code-fold: true
+#| fig-align: "center"
+
+k = 10
+x = np.linspace(0, 30, 1000)
+
+ns = [5, 7, 10, 15, 20]
+colors = ["#a4dd1e", "#46844b", "#cfad40", "#e03cd0", "#7a4da9"]
+
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=x, y=chi2.pdf(x, k), mode='lines', name="f(x)", line=dict(color="#a94d4d", width=2)))
+
+for n, col in zip(ns, colors):
+    x_val = np.linspace(0, 30, n+1)
+    y_val = chi2.pdf(x_val, k)
+    cs = CubicSpline(x_val, y_val, bc_type='natural')
+    fig.add_trace(go.Scatter(x=x, y=cs(x), mode='lines', name=f"S{n}", line=dict(color=col, width=2)))
+
+fig.update_layout(xaxis_title="x", yaxis_title="Densidad", template='plotly_white')
+fig.show()
+
+#| code-fold: true
+#| fig-align: "center"
+
+meses = np.arange(1, 25)
+inpc_mock = np.array([118.0, 118.9, 120.1, 120.8, 121.0, 121.5, 122.4, 123.0, 123.8, 124.5, 125.2, 125.9,
+                      126.7, 127.3, 127.8, 128.2, 128.0, 128.3, 128.9, 129.5, 130.1, 130.6, 131.2, 131.8])
+
+igae_mock = np.array([110.1, 111.0, 111.5, 112.2, 112.0, 113.1, 113.5, 113.8, 114.2, 114.0, 114.6, 115.1,
+                      115.8, 116.0, 116.4, 116.8, 117.1, 117.5, 117.8, 118.2, 118.5, 118.8, 119.2, 119.5])
+
+meses_finos = np.linspace(1, 24, 300)
+spline_inpc = CubicSpline(meses, inpc_mock, bc_type='natural')
+spline_igae = CubicSpline(meses, igae_mock, bc_type='natural')
+
+fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+ax[0].plot(meses_finos, spline_inpc(meses_finos), color='tomato', label="Spline INPC")
+ax[0].scatter(meses, inpc_mock, color='black', s=20)
+ax[0].set_title("Evolución del INPC")
+ax[0].grid(alpha=0.3)
+ax[0].legend()
+
+ax[1].plot(meses_finos, spline_igae(meses_finos), color='teal', label="Spline IGAE")
+ax[1].scatter(meses, igae_mock, color='black', s=20)
+ax[1].set_title("Evolución del IGAE")
+ax[1].grid(alpha=0.3)
+ax[1].legend()
+
+plt.show()
+
+#| code-fold: true
+#| fig-align: "center"
+
+tickers = ["AAPL", "MSFT"]
+data = yf.download(tickers, start="2022-01-01", end="2024-01-01", interval="1mo")['Close']
+data = data.dropna()
+
+x_meses = np.arange(len(data))
+x_finos = np.linspace(0, len(data)-1, 300)
+
+fig, ax = plt.subplots(1, 2, figsize=(14, 5))
+
+for i, ticker in enumerate(tickers):
+    y_precios = data[ticker].values
+    spline_acc = CubicSpline(x_meses, y_precios, bc_type='natural')
+    
+    ax[i].plot(x_finos, spline_acc(x_finos), label=f"Spline ({ticker})", color='C'+str(i))
+    ax[i].scatter(x_meses, y_precios, color='black', s=20)
+    ax[i].set_title(f"Precio de {ticker}")
+    ax[i].grid(alpha=0.3)
+    ax[i].legend()
+
+plt.show()
+
