@@ -1,0 +1,217 @@
+---
+title: "Uso de la Interpolación Polinomial en el Empalme de Series Económicas"
+subtitle: "Enfoque Metodológico de la CEPAL y Análisis Numérico Avanzado"
+authors: "Luis Manuel Durán Noches, Arthur Alonso Luna Santoyo, Miguel Ángel Becerra Hernández, María Fernanda Yáñez Obregón, Nataly Pamela Ramírez Cano"
+date: "2026-06-02"
+institution: "UNAM ENES León - Economía Industrial"
+format:
+  revealjs:
+    theme: steel
+    transition: slide
+    scrollable: true
+    slide-number: true
+    embed-resources: true
+
+---
+
+## 1. Introducción y el Problema de las Series Económicas
+
+* **Desafío en Cuentas Nacionales:** En la economía aplicada es común enfrentar la pérdida de comparabilidad temporal, generando **rupturas artificiales** que sesgan el análisis del crecimiento de largo plazo.
+* **Definición de Empalme:** Consiste en unificar dos o más tramos de información basados en metodologías distintas para construir una serie histórica unificada, larga y coherente.
+* **Fase de Homogeneización:** Antes de aplicar cualquier modelo matemático, es estrictamente obligatorio estandarizar la clasificación sectorial y los criterios de valuación. Sin consistencia teórica previa, el cálculo carece de sentido económico.
+
+---
+
+## 2. Marco Teórico y los Nodos de Anclaje
+
+Las recomendaciones de organismos internacionales (*CEPAL, FMI*) respaldan el uso de métodos determinísticos asumiendo que los valores observados en los años base son correctos y que la discrepancia debe distribuirse coherentemente en los periodos intermedios.
+
+Disponemos de un conjunto de datos discretos validados por el **INEGI**, representados analíticamente como nodos de interpolación $\mathcal{S} = \{(x_i, y_i)\}_{i=0}^{n}$ (donde $x_i$ es el mes y $y_i$ es el PIB en mdp):
+
+* $\text{Trimestre 1 (Marzo): } (x_0, y_0) = (3, \, 24\,100)$
+* $\text{Trimestre 2 (Junio): } (x_1, y_1) = (6, \, 24\,550)$
+* $\text{Trimestre 3 (Septiembre): } (x_2, y_2) = (9, \, 24\,300)$
+* $\text{Trimestre 4 (Diciembre): } (x_3, y_3) = (12, \, 25\,100)$
+
+El operador polinomial $P(x)$ tiene la restricción rigurosa de satisfacer la condición de coincidencia exacta:
+$$P(x_i) = y_i \quad \forall \quad i \in \{0, 1, 2, 3\}$$
+
+---
+
+## 3. Limitaciones de Lagrange frente al Efecto Runge
+
+El método de Lagrange construye directamente el polinomio combinando funciones base independientes. Sin embargo, en el análisis de series históricas presenta dos fallas críticas:
+
+* **Rigidez Estructural:** Si se añade un nuevo año o trimestre a la serie histórica, las funciones base cambian por completo, obligando a recalcular la matriz matemática desde cero.
+* **Riesgo de Oscilación (Efecto Runge):** Al intentar extender el método a series de tiempo más largas aumentando el grado del polinomio, se inducen oscilaciones caóticas y errores masivos en los extremos del intervalo.
+
+---
+
+## 4. El Algoritmo de Diferencias Divididas de Newton
+
+Para solucionar la rigidez de Lagrange, el modelo de **Newton** construye el polinomio de manera secuencial y recursiva. Su estructura matemática general para un espacio de grado $n=3$ se define como:
+
+$$P_3(x) = a_0 + a_1(x - x_0) + a_2(x - x_0)(x - x_1) + a_3(x - x_0)(x - x_1)(x - x_2)$$
+
+Donde los coeficientes $a_i$ se obtienen mediante el operador recursivo de diferencias divididas, aproximando numéricamente las derivadas sucesivas de la trayectoria económica:
+
+$$f[x_i, x_{i+1}, \dots, x_{i+k}] = \frac{f[x_{i+1}, \dots, x_{i+k}] - f[x_i, \dots, x_{i+k-1}]}{x_{i+k} - x_i}$$
+
+### Ventaja en Programación Estadística:
+* **Diseño Dinámico:** Permite añadir nuevos trimestres incorporando un término extra al final, reutilizando el cálculo previo y optimizando la eficiencia algorítmica.
+
+---
+
+## 5. Tabla de Diferencias Divididas (A Mano)
+
+Al resolver la matriz piramidal iterativa empleando las series estadísticas del caso de estudio, la diagonal superior nos provee directamente los parámetros óptimos del modelo ($a_0, a_1, a_2, a_3$):
+
+| $x$ (Mes) | $f[x]$ (PIB) | Primera Diferencia | Segunda Diferencia | Tercera Diferencia |
+| :---: | :---: | :---: | :---: | :---: |
+| **3** | **24100** ($a_0$) | | | |
+| | | **150** ($a_1$) | | |
+| **6** | 24550 | | **-38.8889** ($a_2$) | |
+| | | -83.3333 | | **10.8025** ($a_3$) |
+| **9** | 24300 | | 58.3333 | |
+| | | 266.6667 | | |
+| **12** | 25100 | | | |
+
+---
+
+## 6. Formalización de la Ecuación del Ciclo Económico
+
+Al sustituir los coeficientes de nuestra diagonal superior en la arquitectura jerárquica de Newton, se define la **función analítica continua** que rige el proyecto:
+
+$$P_3(x) = 24100 + 150(x - 3) - 38.8889(x - 3)(x - 6) + 10.8025(x - 3)(x - 6)(x - 9)$$
+
+Efectuando la expansión algebraica de los productos polinomiales y agrupando los términos de acuerdo con su orden de potencia, reducimos el modelo a su **Forma Canónica General**:
+
+$$P_3(x) = 4.0741x^3 - 98.8889x^2 + 738.1481x + 22533.3333$$
+
+Esta ecuación cúbica constituye nuestro modelo macroeconómico determinístico unificado para simular el dominio temporal completo $x \in [1, 12]$.
+
+---
+
+## 7. Gráfica del Modelo de Interpolación
+
+::: {layout-centered="true"}
+![](grafica_final.png){fig-align="center" width="80%"}
+:::
+
+*Modelación de la trayectoria continua analizada en el marco teórico a través del algoritmo recursivo de Newton.*
+
+---
+
+## 8. Resultados de la Desagregación Temporal
+
+::: {layout-centered="true"}
+![](tabla_resultados.png){fig-align="center" width="55%"}
+:::
+
+*Evaluación de los meses intermedios (baja a alta frecuencia según los enfoques de la CEPAL) garantizando consistencia en nodos reales.*
+
+
+## 9. Análisis de Resultados y Comportamiento Estacional
+
+* **Principio de Transición Gradual:** Frente a una interpolación lineal fragmentada (que forzaría quiebres rígidos e irreales), la naturaleza del término cúbico $x^3$ modela la inercia del aparato productivo, donde los flujos de mercado transicionan suavemente.
+* **Dinámica Estacional:** La combinación de signos (término cuadrático negativo $-98.8889x^2$ y cúbico positivo $+4.0741x^3$) captura con precisión el ciclo económico real:
+  1. Fase de expansión sostenida durante el segundo trimestre.
+  2. Desaceleración técnica transitoria en el tercer trimestre (Septiembre).
+  3. Repunte geométrico agresivo hacia el cierre anual de diciembre ($x=12$), inducido por la estacionalidad del comercio masivo.
+
+---
+
+## 10. Restricción Crítica: Pérdida de Aditividad
+A pesar de la consistencia matemática del modelo, en el ámbito de la Contabilidad Nacional se debe advertir una restricción metodológica severa: la pérdida de aditividad sectorial.
+
+
+Si se aplica este polinomio $P_3(x)$ al agregado global del PIB, y en paralelo se modelan de forma independiente los subsectores de la economía mediante el mismo método, se incumple la condición analítica de agregación:
+
+
+$$\sum_{j=1}^{m} P_{sub, j}(x) \neq P_{PIB}(x)$$
+
+Por consiguiente, el modelo es excelente para la aproximación directa de variables agregadas, pero demandaría algoritmos complementarios (como el método de Denton) si se requiriera consistencia contable intersectorial simultánea.
+
+::: {.column width="100%"}
+
+### Corrección (Denton)
+El algoritmo redistribuye la discrepancia $D_x$ con base en los pesos sectoriales $W_{j,x}$:
+$$Y_{j,x} = P_{sub, j}(x) - (D_x \times W_{j,x})$$
+
+<br>
+
+```{python}
+#| echo: false
+#| output: asis
+import numpy as np
+import pandas as pd
+import warnings
+warnings.filterwarnings("ignore")
+
+meses = np.arange(1, 13)
+def polinomio_pib(x):
+    return 4.074074 * (x**3) - 98.888889 * (x**2) + 738.148148 * x + 22533.333333
+
+pib_global = polinomio_pib(meses)
+pib_industrial = 2.5 * (meses**3) - 55.0 * (meses**2) + 380.0 * meses + 9000.0
+pib_servicios = pib_global - pib_industrial + (120 * np.sin(meses)) 
+suma_independiente = pib_industrial + pib_servicios
+
+discrepancia = suma_independiente - pib_global
+peso_ind = pib_industrial / suma_independiente
+peso_ser = pib_servicios / suma_independiente
+
+pib_ind_ajustado = pib_industrial - (discrepancia * peso_ind)
+pib_ser_ajustado = pib_servicios - (discrepancia * peso_ser)
+suma_ajustada = pib_ind_ajustado + pib_ser_ajustado
+
+# Crear mini tabla para los meses de cierre trimestral (Marzo, Junio, Septiembre, Diciembre)
+meses_cierre = [2, 5, 8, 11]
+df_mini = pd.DataFrame({
+    'Mes': ['Mar (x=3)', 'Jun (x=6)', 'Sep (x=9)', 'Dic (x=12)'],
+    'PIB Objetivo': np.round(pib_global[meses_cierre], 0),
+    'Suma Sin Aj.': np.round(suma_independiente[meses_cierre], 0),
+    'Suma Ajust.': np.round(suma_ajustada[meses_cierre], 0)
+})
+
+# Renderizar como tabla HTML compacta nativa para Quarto
+print(df_mini.to_html(index=False, classes="table table-sm table-striped", border=0))
+
+#| echo: false
+#| fig-align: "center"
+#| fig-width: 8.5
+#| fig-height: 6.2
+import matplotlib.pyplot as plt
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6.2))
+meses_nombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+# Gráfica A: El Problema
+ax1.grid(True, linestyle='--', alpha=0.5)
+ax1.plot(meses, pib_global, label=r'PIB Global Objetivo $P_{PIB}$', color='#2C3E50', linewidth=2.5)
+ax1.plot(meses, suma_independiente, label=r'Suma de Sub-Polinomios ($\sum P_{sub}$)', color='#C0392B', linestyle=':', linewidth=2)
+ax1.fill_between(meses, pib_global, suma_independiente, color='#C0392B', alpha=0.1, label='Discrepancia Contable')
+ax1.set_title('A) Modelación Independiente (Ruptura de Aditividad)', fontsize=11, fontweight='bold', color='#C0392B')
+ax1.set_xticks(meses)
+ax1.set_xticklabels(meses_nombres, fontsize=9)
+ax1.legend(loc='upper left', fontsize=8.5, frameon=True, facecolor='white')
+
+# Gráfica B: La Solución
+ax2.grid(True, linestyle='--', alpha=0.5)
+ax2.plot(meses, pib_global, label=r'PIB Global Objetivo $P_{PIB}$', color='#2C3E50', linewidth=2.5)
+ax2.plot(meses, suma_ajustada, label='Suma Ajustada (Denton)', color='#1E8449', linestyle='-', linewidth=2)
+ax2.set_title('B) Con Ajuste Multivariante (Consistencia Contable Total)', fontsize=11, fontweight='bold', color='#1E8449')
+ax2.set_xticks(meses)
+ax2.set_xticklabels(meses_nombres, fontsize=9)
+ax2.legend(loc='upper left', fontsize=8.5, frameon=True, facecolor='white')
+
+plt.tight_layout()
+plt.show()
+```
+
+## 11. Conclusión
+
+* La interpolación polinomial constituye una herramienta cuantitativa fundamental para la construcción de series históricas continuas y comparables.
+* El modelo de diferencias divididas de Newton proporciona el balance ideal entre rigor algebraico exacto, suavizado de ciclos estacionales macroeconómicos y eficiencia computacional óptima para la automatización de procesos estadísticos.
+
+---
