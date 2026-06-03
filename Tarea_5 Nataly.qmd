@@ -326,9 +326,3 @@ for nombre, lims in distribuciones_estudio.items():
     plt.legend(fontsize='small')
     plt.show()
 ```
-
-------------------------------------------------------------------------
-
-### Conclusión General
-
-El desarrollo metodológico confirma que la biblioteca SciPy junto con esquemas de diferencias avanzadas brindan un soporte de cómputo robusto de alta precisión, minimizando los errores de truncamiento numérico y satisfaciendo los criterios formales exigidos en la práctica de análisis numérico.
